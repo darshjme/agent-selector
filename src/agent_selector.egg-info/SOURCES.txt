@@ -1,0 +1,14 @@
+pyproject.toml
+src/agent_selector/__init__.py
+src/agent_selector/candidate.py
+src/agent_selector/chain.py
+src/agent_selector/selector.py
+src/agent_selector/strategies.py
+src/agent_selector.egg-info/PKG-INFO
+src/agent_selector.egg-info/SOURCES.txt
+src/agent_selector.egg-info/dependency_links.txt
+src/agent_selector.egg-info/requires.txt
+src/agent_selector.egg-info/top_level.txt
+tests/test_candidate.py
+tests/test_chain.py
+tests/test_strategies.py
