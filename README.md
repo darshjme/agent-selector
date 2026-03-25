@@ -1,11 +1,32 @@
-# agent-selector
+<div align="center">
 
-**Strategy-based model and agent selection for LLM applications.**
+<img src="assets/agent-selector-hero.png" alt="agent-selector — Vedic Arsenal" width="100%" />
 
-Stop writing `if model == "gpt4" ... elif model == "claude" ...` chains.
-`agent-selector` gives you pluggable, composable routing strategies to decide which LLM or agent variant handles each request.
+# 🌊 agent-selector
+
+### *ब्रह्म* — Brahma — the universal intelligence
+
+**Strategy-based model/agent selection — RoundRobin, Random, Cheapest, Tag, LoadBalanced, SelectorChain. Zero dependencies.**
+
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python)](https://python.org)
+[![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen?style=flat-square)](https://github.com/darshjme/agent-selector)
+[![Tests](https://img.shields.io/badge/Tests-Passing-success?style=flat-square)](https://github.com/darshjme/agent-selector/actions)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+[![Vedic Arsenal](https://img.shields.io/badge/Vedic%20Arsenal-100%20libs-purple?style=flat-square)](https://github.com/darshjme/arsenal)
+
+*Part of the [**Vedic Arsenal**](https://github.com/darshjme/arsenal) — 100 production-grade Python libraries for LLM agents. Zero dependencies. Battle-tested.*
+
+</div>
 
 ---
+
+## Overview
+
+`agent-selector` implements **strategy-based model/agent selection — roundrobin, random, cheapest, tag, loadbalanced, selectorchain. zero dependencies.**
+
+Inspired by the Vedic principle of *ब्रह्म* (Brahma), this library brings the ancient wisdom of structured discipline to modern LLM agent engineering.
+
+No external dependencies. Pure Python 3.8+. Drop it in anywhere.
 
 ## Installation
 
@@ -13,138 +34,67 @@ Stop writing `if model == "gpt4" ... elif model == "claude" ...` chains.
 pip install agent-selector
 ```
 
-Python ≥ 3.10 required. Zero runtime dependencies.
-
----
-
-## Quick Start — Multi-Model LLM Routing
-
-```python
-from agent_selector import (
-    Candidate,
-    TagSelector,
-    CheapestSelector,
-    RoundRobinSelector,
-    LoadBalancedSelector,
-    RandomSelector,
-    SelectorChain,
-)
-
-# ── 1. Define your models as Candidates ──────────────────────────────────────
-
-def call_gpt4o(prompt: str) -> str:
-    # your openai client call here
-    return f"[gpt-4o] {prompt}"
-
-def call_claude3(prompt: str) -> str:
-    # your anthropic client call here
-    return f"[claude-3-opus] {prompt}"
-
-def call_gemini(prompt: str) -> str:
-    # your google client call here
-    return f"[gemini-1.5-pro] {prompt}"
-
-def call_local_llama(prompt: str) -> str:
-    # ollama / llama.cpp call here
-    return f"[llama-3-8b-local] {prompt}"
-
-gpt4o     = Candidate("gpt-4o",          call_gpt4o,      cost_per_call=0.01,  tags=["powerful", "vision"])
-claude3   = Candidate("claude-3-opus",   call_claude3,    cost_per_call=0.015, tags=["powerful", "reasoning"])
-gemini    = Candidate("gemini-1.5-pro",  call_gemini,     cost_per_call=0.007, tags=["fast", "vision"])
-llama_local = Candidate("llama-3-8b",   call_local_llama, cost_per_call=0.0,  tags=["fast", "cheap"])
-
-# ── 2. Pick a strategy ───────────────────────────────────────────────────────
-
-# Always cheapest first
-cheapest = CheapestSelector([gpt4o, claude3, gemini, llama_local])
-print(cheapest.select().name)          # → llama-3-8b  (cost 0.0)
-
-# Tag-based: pick by capability required
-tag_sel = TagSelector([gpt4o, claude3, gemini, llama_local])
-model = tag_sel.select({"tags": ["vision"]})
-print(model.name)                      # → gpt-4o  (first with "vision" tag)
-
-# Round-robin across two primary models
-rr = RoundRobinSelector([gpt4o, claude3])
-for _ in range(4):
-    print(rr.select().name)            # gpt-4o, claude-3-opus, gpt-4o, claude-3-opus
-
-# Load balanced — fewest calls wins
-lb = LoadBalancedSelector([gpt4o, claude3, gemini])
-for _ in range(5):
-    print(lb.select().name)
-print(lb.call_counts())                # {'gpt-4o': 2, 'claude-3-opus': 2, 'gemini-1.5-pro': 1}
-
-# ── 3. Chain strategies as fallbacks ─────────────────────────────────────────
-
-# Try tag match first; if nothing matches, fall back to cheapest
-chain = SelectorChain([
-    TagSelector([gpt4o, claude3, gemini, llama_local]),
-    CheapestSelector([gpt4o, claude3, gemini, llama_local]),
-])
-
-# Request requiring "reasoning" capability
-chosen = chain.select({"tags": ["reasoning"]})
-print(chosen.name)                     # → claude-3-opus
-
-# Request with an unmatchable tag → falls back to cheapest
-chosen = chain.select({"tags": ["unknown-capability"]})
-print(chosen.name)                     # → llama-3-8b
-
-# ── 4. Use the handler directly ──────────────────────────────────────────────
-
-user_prompt = "Explain transformers in one paragraph."
-selected_model = chain.select({"tags": ["powerful"]})
-response = selected_model.handler(user_prompt)
-print(response)
+Or clone directly:
+```bash
+git clone https://github.com/darshjme/agent-selector.git
+cd agent-selector
+pip install -e .
 ```
 
----
-
-## Strategies
-
-| Strategy | Description |
-|---|---|
-| `RoundRobinSelector` | Cycles through candidates in registration order |
-| `RandomSelector` | Weighted-random selection (`candidate.weight`) |
-| `CheapestSelector` | Always picks the lowest `cost_per_call` candidate |
-| `TagSelector` | Picks first candidate whose tags are a superset of `context["tags"]` |
-| `LoadBalancedSelector` | Tracks call counts; picks the least-used candidate |
-| `SelectorChain` | Tries selectors in order; first success wins |
-
----
-
-## API Reference
-
-### `Candidate`
+## Quick Start
 
 ```python
-Candidate(
-    name: str,
-    handler: callable,
-    cost_per_call: float = 0.0,
-    tags: list[str] = None,
-    weight: float = 1.0,
-)
+from selector import *
+
+# Initialize
+# See examples/ for full usage patterns
 ```
 
-- `.to_dict()` → serialisable dict (handler excluded)
+## Why `agent-selector`?
 
-### `Selector` (base)
+Production LLM systems fail in predictable ways. `agent-selector` solves the **selector** failure mode with:
 
-- `.add(candidate) -> Selector` — fluent
-- `.select(context=None) -> Candidate` — abstract
-- `.candidates -> list[Candidate]`
+- **Zero dependencies** — no version conflicts, no bloat
+- **Battle-tested patterns** — extracted from real production systems
+- **Type-safe** — full type hints, mypy-compatible
+- **Minimal surface area** — one job, done well
+- **Composable** — works with any LLM framework (LangChain, LlamaIndex, raw OpenAI, etc.)
 
-### `SelectorChain`
+## The Vedic Arsenal
 
-```python
-SelectorChain(selectors: list[Selector])
-chain.select(context=None) -> Candidate
+`agent-selector` is part of **[darshjme/arsenal](https://github.com/darshjme/arsenal)** — a collection of 100 focused Python libraries for LLM agent infrastructure.
+
+Each library solves exactly one problem. Together they form a complete stack.
+
+```
+pip install agent-selector  # this library
+# Browse all 100: https://github.com/darshjme/arsenal
 ```
 
----
+## Contributing
+
+Found a bug? Have an improvement?
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b fix/your-fix`)
+3. Add tests
+4. Open a PR
+
+All contributions welcome. Keep it zero-dependency.
 
 ## License
 
-MIT © Darshankumar Joshi
+MIT — use freely, build freely.
+
+---
+
+<div align="center">
+
+**Built with 🌊 by [Darshankumar Joshi](https://github.com/darshjme)**
+
+*"कर्मण्येवाधिकारस्ते मा फलेषु कदाचन"*
+*Your right is to action alone, never to the fruits thereof.*
+
+[Arsenal](https://github.com/darshjme/arsenal) · [GitHub](https://github.com/darshjme) · [Twitter](https://twitter.com/thedarshanjoshi)
+
+</div>
